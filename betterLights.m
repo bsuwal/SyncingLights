@@ -15,12 +15,12 @@ function betterLights
     RESET_TIME = 3;     % reset max_energy per band, and beat thres every
                         % RESET_TIME mins
     nBands = 5;
-    T_buff = 2;
+    T_buff = 1;
     buffSize = floor(T_buff/T) + 1;     % number of frames whose energy at diff bands
                        % is kept track of - 
     history = zeros(1, buffSize);
     beat_est_thres = 0.08;
-    bpm = 0;        % initial estimate
+    bps = 0;        % initial estimate
     
     % debug mode
     PLOTTED = true;
@@ -72,12 +72,12 @@ function betterLights
             [audio, nOverRun] = mic();
             if PRINTED && nOverRun > 5
                 fprintf(['Number of samples overrun = %g ', ...
-                         '\n \t at t = %.4f mins \n'], ...
+                         '\t \t at t = %.4f mins \n'], ...
                          nOverRun, toc(runTime)/60) 
             end
             X_f = abs(ft(audio .* win));
             X_f = X_f(1:length(f));     % get only the positive frequencies
-            [band_eg, maxEnergy] = sendData(obj, f, X_f, maxEnergy, bpm);
+            [band_eg, maxEnergy] = sendData(obj, f, X_f, maxEnergy, bps);
 
             % - get bpm estimate by tracking the number of beats in the last
             %   T_buff seconds 
@@ -88,7 +88,7 @@ function betterLights
             history = [history(2:end-1), sum(audio.^2)/L - history(end), sum(audio.^2)/L];
             history(history < 0) = 0;
             beat_est_thres = (beat_est_thres * (count - 1) + mean(history(1:end-1))) / count;
-            bpm = sum(history(1:end-1) > beat_est_thres) / (T_buff) * 60;
+            bps = sum(history(1:end-1) > beat_est_thres) / (T_buff);
             
             if PLOTTED
                 subplot 211
@@ -100,7 +100,7 @@ function betterLights
                                 floor(toc(runTime)/3600), ...
                                 mod(floor(toc(runTime)/60), 60), ...
                                 mod(toc(runTime), 60), ...
-                                bpm));
+                                bps));
                 subplot 212
                 semilogx(h_fig.CurrentAxes, f, X_f)
                 xlabel('Frequency (kHz)')
